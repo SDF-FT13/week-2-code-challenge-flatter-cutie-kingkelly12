@@ -1,93 +1,62 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const characterBar = document.getElementById('character-bar');
-    const detailedInfo = document.getElementById('detailed-info');
-    const votesForm = document.getElementById('votes-form');
-    const resetBtn = document.getElementById('reset-btn');
-    const characterForm = document.getElementById('character-form');
-    const nameDisplay = document.getElementById('name');
-    const imageDisplay = document.getElementById('image');
-    const voteCountDisplay = document.getElementById('vote-count');
-    const votesInput = document.getElementById('votes');
-    const nameInput = document.getElementById('name-input');
-    const imageUrlInput = document.getElementById('image-url');
-  
-    let characters = [
-      { name: 'Rainbow', votes: 0, image: 'assets/rainbow.jpg' },
-      { name: 'Blue Sky', votes: 0, image: 'assets/bluesky.jpg' },
-      { name: 'Ruby', votes: 0, image: 'assets/ruby.jpg' },
-      { name: 'Sapphire', votes: 0, image: 'assets/saphire.jpg' },
-      { name: 'Topaz', votes: 0, image: 'assets/topaz.jpg' },
-    ];
-  
-    let currentCharacterIndex = 0;
-  
-    function updateCharacterBar() {
-      characterBar.innerHTML = '';
-      characters.forEach((character, index) => {
-        const charDiv = document.createElement('div');
-        charDiv.textContent = character.name;
-        charDiv.classList.add('character-item');
-        charDiv.setAttribute('role', 'button');
-        charDiv.setAttribute('tabindex', '0');
-        charDiv.addEventListener('click', () => showCharacterInfo(index));
-        charDiv.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            showCharacterInfo(index);
-          }
-        });
-        characterBar.appendChild(charDiv);
-      });
-    }
-  
-    function showCharacterInfo(index) {
-      currentCharacterIndex = index;
-      const character = characters[index];
-      nameDisplay.textContent = character.name;
-      imageDisplay.src = character.image;
-      imageDisplay.alt = character.name;
-      voteCountDisplay.textContent = character.votes;
-    }
-  
-    function handleVoteSubmit(event) {
-      event.preventDefault();
-      const votes = parseInt(votesInput.value, 10);
-      if (!isNaN(votes) && votes >= 0) {
-        characters[currentCharacterIndex].votes += votes;
-        voteCountDisplay.textContent = characters[currentCharacterIndex].votes;
-        votesInput.value = '';
-      } else {
-        alert('Please enter a valid number of votes.');
-      }
-    }
-  
-    function handleReset() {
-      characters[currentCharacterIndex].votes = 0;
-      voteCountDisplay.textContent = 0;
-    }
-  
-    function handleCharacterSubmit(event) {
-      event.preventDefault();
-      const newCharacter = {
-        name: nameInput.value.trim(),
-        votes: 0,
-        image: imageUrlInput.value.trim(),
-      };
-      if (newCharacter.name && newCharacter.image) {
-        characters.push(newCharacter);
-        updateCharacterBar();
-        nameInput.value = '';
-        imageUrlInput.value = '';
-        showCharacterInfo(characters.length - 1); // Show the newly added character
-      } else {
-        alert('Both name and image URL are required.');
-      }
-    }
-  
-    votesForm.addEventListener('submit', handleVoteSubmit);
-    resetBtn.addEventListener('click', handleReset);
-    characterForm.addEventListener('submit', handleCharacterSubmit);
-  
-    updateCharacterBar();
-    showCharacterInfo(currentCharacterIndex);
-  });
-  
+document.addEventListener("DOMContentLoaded", () => {
+    const renderCharacters = async () => {
+        const url = "http://localhost:3000/characters";
+
+        try {
+            // Fetch character data from the server
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const characters = await response.json();
+
+            // Get the character-bar div
+            const characterBar = document.getElementById("character-bar");
+            characterBar.innerHTML = ""; // Clear any existing content
+
+            // Loop through each character and create a span
+            characters.forEach(character => {
+                const span = document.createElement("span");
+                span.textContent = character.name; // Set the character's name as the span's text
+
+                // Add a click event listener to display character details
+                span.addEventListener("click", () => {
+                    const characterDetails = document.getElementById("detailed-info");
+                    characterDetails.innerHTML = `
+                        <h2>${character.name}</h2>
+                        <img src="${character.image}" alt="${character.name}">
+                        <p>Votes: <span id="vote-count">${character.votes}</span></p>
+                        <form id="votes-form">
+                            <input type="number" id="votes-input" placeholder="Enter votes" />
+                            <button type="submit">Add Votes</button>
+                        </form>
+                    `;
+                    
+                    // Handle votes form submission
+                    const votesForm = document.getElementById("votes-form");
+                    votesForm.addEventListener("submit", (event) => {
+                        event.preventDefault();
+                        const votesInput = document.getElementById("votes-input");
+                        const voteCount = document.getElementById("vote-count");
+
+                        // Update the votes count
+                        const additionalVotes = parseInt(votesInput.value, 10) || 0;
+                        character.votes += additionalVotes;
+                        voteCount.textContent = character.votes;
+
+                        // Clear the input field
+                        votesInput.value = "";
+                    }, { once: true }); // Ensure the event listener is added only once
+                });
+
+                // Append the span to the character-bar div
+                characterBar.appendChild(span);
+            });
+        } catch (error) {
+            console.error("Error fetching characters:", error);
+        }
+    };
+
+    // Call the function to render characters
+    renderCharacters();
+});
